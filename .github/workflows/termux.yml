@@ -1,0 +1,35 @@
+name: Termux ARM64
+on:
+  workflow_dispatch:
+  push:
+    branches: ['termux/**']
+    paths: ['codex-rs/**', 'termux/**', '.github/workflows/termux.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Install build tools and pinned Android NDK
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build pkg-config perl make
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" 'ndk;29.0.14206865'
+          echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/29.0.14206865" >> "$GITHUB_ENV"
+      - name: Build from locked sources
+        run: bash termux/build.sh
+      - name: Check Android ELF
+        run: |
+          grep -q 'AArch64' termux/dist/elf.txt
+          grep -q '/system/bin/linker64' termux/dist/elf.txt
+          ! grep -q 'libssl.so\|libcrypto.so\|libc++_shared.so' termux/dist/elf.txt
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: codex-termux-aarch64
+          path: termux/dist/
+          if-no-files-found: error
