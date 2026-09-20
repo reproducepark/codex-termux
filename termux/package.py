@@ -28,10 +28,21 @@ if existing_info:
     # Preserve the real compilation provenance when adding installer/docs to CI output.
     metadata = json.loads(Path(existing_info).read_text())
     assert not metadata["dirty"], "Cannot repackage an uncommitted build"
+    assert metadata.get("build_std") is True
+    assert metadata["std_file_lock_patch_sha256"] == sha(
+        repo / "termux/rust-1.95.0-android-file-lock.patch"
+    )
     assert metadata["binary_sha256"] == sha(out / "codex")
     assert metadata["cargo_lock_sha256"] == sha(repo / "codex-rs/Cargo.lock")
-    built_tree = capture("git", "rev-parse", metadata["fork_commit"] + ":codex-rs")
-    assert built_tree == capture("git", "rev-parse", "HEAD:codex-rs")
+    for path in (
+        "codex-rs",
+        "termux/file-lock-probe",
+        "termux/build.sh",
+        "termux/linker.sh",
+        "termux/prepare-toolchain.py",
+    ):
+        built_tree = capture("git", "rev-parse", metadata["fork_commit"] + ":" + path)
+        assert built_tree == capture("git", "rev-parse", "HEAD:" + path), path
     metadata["packaging_commit"] = capture("git", "rev-parse", "HEAD")
     metadata["packaging_dirty"] = bool(
         capture("git", "status", "--porcelain", "--untracked-files=no")
@@ -45,6 +56,9 @@ else:
         "target": "aarch64-linux-android",
         "android_api": 28,
         "ndk": "29.0.14206865",
+        "ndk_builtins_sha256": sha(Path(os.environ["CODEX_ANDROID_BUILTINS"])),
+        "release_debug": 0,
+        "release_lto": "thin",
         "build_std": True,
         "std_file_lock_patch_sha256": sha(
             repo / "termux/rust-1.95.0-android-file-lock.patch"

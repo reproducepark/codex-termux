@@ -22,6 +22,13 @@ export TMPDIR="${TMPDIR:-$PREFIX/tmp}"
 export SHELL="${SHELL:-$PREFIX/bin/bash}"
 export SSL_CERT_FILE="${SSL_CERT_FILE:-$PREFIX/etc/tls/cert.pem}"
 export SSL_CERT_DIR="${SSL_CERT_DIR:-$PREFIX/etc/tls/certs}"
+# Codex clears inherited LD_* variables during process hardening. Restore only
+# Termux's own exec shim in tool subprocesses so /usr/bin/env shebangs work.
+termux_exec="$PREFIX/lib/libtermux-exec.so"
+if [[ -f $termux_exec ]]; then
+    exec "$PREFIX/libexec/codex-termux/codex" \
+        -c "shell_environment_policy.set.LD_PRELOAD=\"$termux_exec\"" "$@"
+fi
 exec "$PREFIX/libexec/codex-termux/codex" "$@"
 LAUNCHER
 chmod 755 "$launcher"

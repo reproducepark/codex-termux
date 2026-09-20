@@ -16,7 +16,7 @@ Use Termux F-Droid on an ARM64 device running Android 9 or newer. Android 17 wit
 Termux 0.118.3 (`TERMUX_APK_RELEASE=F_DROID`) is the validation target.
 
 ```bash
-pkg install ca-certificates git ripgrep curl
+pkg install ca-certificates git ripgrep curl termux-exec
 ```
 
 Download the archive, `SHA256SUMS`, and `install.sh` from this fork's GitHub
@@ -34,8 +34,12 @@ codex
 
 The installer places the native binary at `$PREFIX/libexec/codex-termux/codex`
 and a launcher at `$PREFIX/bin/codex`. It backs up an existing unrelated launcher.
-The launcher supplies Termux certificate, shell, and temporary-directory defaults;
-it does not write your Codex configuration or change permission policies.
+The launcher supplies Termux certificate, shell, and temporary-directory defaults.
+It also sets the known Termux `libtermux-exec.so` path for shell tool subprocesses
+using a command-line environment policy override: Codex's startup hardening clears
+`LD_PRELOAD`, which otherwise breaks common `#!/usr/bin/env` scripts on Android.
+No arbitrary inherited preload value is restored. It does not write your Codex
+configuration or change sandbox/approval policies.
 
 Android is not an upstream supported OS sandbox. Do not assume the desktop
 Linux sandbox operates here. If a command requires execution without Codex's OS
@@ -59,6 +63,8 @@ bash termux/build.sh
 
 The first optimized build is substantial. The script defaults to two concurrent
 Cargo jobs to limit peak memory; set `CARGO_BUILD_JOBS` explicitly to override.
+Release optimization and thin LTO are retained; unused debug tables are disabled
+because the distributed executable is stripped.
 
 The output is `termux/dist/`, containing the stripped native executable, a
 compressed release archive, `SHA256SUMS`, ELF metadata, and `build-info.json`.
@@ -83,6 +89,10 @@ original source SHA-256 and creates a private sysroot overlay. The original Rust
 installation is not modified. Cargo's `-Z build-std` plumbing is enabled using
 `RUSTC_BOOTSTRAP=1`, while both compiler and rust-src stay pinned to 1.95.0.
 `file-lock-probe` exercises exclusive/shared contention and unlock on the phone.
+It also calls NDK-compiled C atomics. The linker wrapper adds the pinned NDK's
+compiler runtime archive for outlined ARM64 atomic helpers omitted by the
+Rust-only `build-std` compiler-builtins. This small probe is linked before the
+large CLI so runtime linkage errors fail early.
 
 The Android-only `openssl-sys` dependency enables vendored OpenSSL so the binary
 does not depend on a host OpenSSL installation or a matching Termux libssl ABI.
@@ -103,5 +113,26 @@ python3 termux/smoke.py -- codex app-server
 ```
 
 Run it with a disposable `CODEX_HOME` and working directory. A host can prefix the
-command with SSH to a connected phone. See `VALIDATION.md` for release evidence
-and remaining limitations.
+command with SSH to a connected phone.
+
+`agent-smoke.py` additionally serves a loopback Responses API and verifies an
+actual `codex exec` tool-call cycle. In a disposable directory, with a disposable
+`CODEX_HOME` outside the system temporary directory:
+
+```bash
+python3 /path/to/repo/termux/agent-smoke.py --port 54247 -- \
+  codex exec --skip-git-repo-check --sandbox danger-full-access \
+  -m termux-smoke \
+  -c 'model_provider="termux_test"' \
+  -c 'model_providers.termux_test.name="Termux smoke"' \
+  -c 'model_providers.termux_test.base_url="http://127.0.0.1:54247/v1"' \
+  -c 'model_providers.termux_test.wire_api="responses"' \
+  -c 'model_providers.termux_test.requires_openai_auth=false' \
+  -c 'model_providers.termux_test.supports_websockets=false' \
+  'Run the controlled smoke test'
+```
+
+For host-driven phone validation, forward the loopback port with `adb reverse`
+and prefix the Codex command with SSH. The test writes `agent-test.txt` in its cwd.
+It requires no real account or model, and validates tool execution rather than
+model quality. See `VALIDATION.md` for release evidence and remaining limitations.

@@ -77,7 +77,12 @@ with tempfile.TemporaryFile(mode="w+") as errors:
         shell = "/data/data/com.termux/files/usr/bin/bash"
         # Restricted to the disposable cwd; explicit unsandboxed policy because
         # Android has no supported Codex OS sandbox. No user config is changed.
-        command = 'printf "termux-한글\\n" > probe.txt; rg "termux" probe.txt; printf "PIPE_OK\\n" | cat; rm probe.txt'
+        command = (
+            'set -e; printf "termux-한글\\n" > probe.txt; rg "termux" probe.txt; '
+            'printf "PIPE_OK\\n" | cat; '
+            "printf '%s\\n' '#!/usr/bin/env bash' 'printf SHEBANG_OK' > shebang.sh; "
+            "chmod +x shebang.sh; ./shebang.sh; rm probe.txt shebang.sh"
+        )
         send(
             "command/exec",
             {
@@ -92,7 +97,8 @@ with tempfile.TemporaryFile(mode="w+") as errors:
         assert (
             "termux-한글" in response["stdout"] and "PIPE_OK" in response["stdout"]
         ), response
-        print("PASS shell, write/read, ripgrep, pipes, UTF-8", flush=True)
+        assert "SHEBANG_OK" in response["stdout"], response
+        print("PASS shell, write/read, ripgrep, pipes, UTF-8, env shebang", flush=True)
         send(
             "command/exec",
             {

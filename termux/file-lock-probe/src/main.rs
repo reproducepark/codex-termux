@@ -2,7 +2,12 @@ use std::fs::File;
 use std::fs::TryLockError;
 use std::process::Command;
 
+unsafe extern "C" {
+    fn termux_atomic_probe() -> i32;
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    assert_eq!(unsafe { termux_atomic_probe() }, 0);
     let args: Vec<_> = std::env::args().collect();
     let file = File::options()
         .read(true)
@@ -42,7 +47,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     file.try_lock_shared()?;
     file.unlock()?;
     println!(
-        "PASS Android std::fs locks: exclusive/shared contention, blocking acquisition, unlock"
+        "PASS Android std::fs locks and NDK atomics: exclusive/shared contention, blocking acquisition, unlock"
     );
     Ok(())
 }

@@ -14,12 +14,17 @@ esac
 ndk_bin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/$host/bin"
 export PATH="$ndk_bin:$PATH"
 export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
-export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$ndk_bin/aarch64-linux-android28-clang"
-export CC_aarch64_linux_android="$CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER"
+export CODEX_ANDROID_CLANG="$ndk_bin/aarch64-linux-android28-clang"
+export CODEX_ANDROID_BUILTINS="$("$CODEX_ANDROID_CLANG" --print-libgcc-file-name)"
+[[ -f $CODEX_ANDROID_BUILTINS ]] || { echo 'Missing NDK compiler runtime' >&2; exit 1; }
+export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$repo/termux/linker.sh"
+export CC_aarch64_linux_android="$CODEX_ANDROID_CLANG"
 export CXX_aarch64_linux_android="$ndk_bin/aarch64-linux-android28-clang++"
 export AR_aarch64_linux_android="$ndk_bin/llvm-ar"
 export CARGO_TARGET_AARCH64_LINUX_ANDROID_RUSTFLAGS='-C link-arg=-Wl,-z,max-page-size=16384'
 export CARGO_INCREMENTAL=0
+# Release artifacts are stripped; omit unused debug tables during compilation.
+export CARGO_PROFILE_RELEASE_DEBUG=0
 # Keep peak memory bounded on 16 GiB build hosts.
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-2}"
 export SOURCE_DATE_EPOCH="$(git -C "$repo" show -s --format=%ct HEAD)"
@@ -36,6 +41,9 @@ export RUSTDOC="$repo/termux/.toolchain/bin/rustdoc-termux"
 export RUSTC_BOOTSTRAP=1
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$repo/termux/target}"
 cd "$repo/codex-rs"
+# Catch std/NDK linkage issues before the large CLI build.
+cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android \
+  --manifest-path "$repo/termux/file-lock-probe/Cargo.toml"
 cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android -p codex-cli --bin codex "$@"
 binary="${CARGO_TARGET_DIR:-target}/aarch64-linux-android/release/codex"
 out="$repo/termux/dist"
@@ -43,8 +51,6 @@ mkdir -p "$out"
 cp "$binary" "$out/codex"
 "$ndk_bin/llvm-strip" "$out/codex"
 "$ndk_bin/llvm-readelf" -h -l -d "$out/codex" > "$out/elf.txt"
-cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android \
-  --manifest-path "$repo/termux/file-lock-probe/Cargo.toml"
 cp "$CARGO_TARGET_DIR/aarch64-linux-android/release/termux-file-lock-probe" "$out/"
 "$ndk_bin/llvm-strip" "$out/termux-file-lock-probe"
 python3 "$repo/termux/package.py" "$repo" "$out"
