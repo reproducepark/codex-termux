@@ -49,7 +49,7 @@ this setting grants access to the Termux app's accessible files, not Android roo
 
 ## Rebuild on macOS or Linux x86_64
 
-Install Git, Rustup, CMake, Ninja, Perl, Make and Python 3. Obtain the exact NDK
+Install Git, Rustup, CMake, Ninja, Perl, Make, patch and Python 3. Obtain the exact NDK
 revision above via the Android SDK manager or Google's NDK archive. Then:
 
 ```bash
@@ -114,6 +114,15 @@ python3 termux/smoke.py -- codex app-server
 
 Run it with a disposable `CODEX_HOME` and working directory. A host can prefix the
 command with SSH to a connected phone.
+
+For a local test, create the disposable directories explicitly:
+
+```bash
+test_root=$(mktemp -d "$HOME/codex-termux-test.XXXXXX")
+mkdir "$test_root/home" "$test_root/work"
+cd "$test_root/work"
+export CODEX_HOME="$test_root/home"
+```
 
 `agent-smoke.py` additionally serves a loopback Responses API and verifies an
 actual `codex exec` tool-call cycle. In a disposable directory, with a disposable

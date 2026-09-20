@@ -80,7 +80,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
 server = http.server.ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 try:
-    process = subprocess.run(command, capture_output=True, text=True, timeout=120)
+    process = subprocess.run(
+        command,
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
     print(process.stdout)
     print(process.stderr)
     assert process.returncode == 0, process.returncode

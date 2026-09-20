@@ -8,12 +8,16 @@ source_dir=${1:?Usage: bash install.sh /path/to/extracted-release}
 [[ -f $source_dir/codex ]] || { echo 'Missing codex executable.' >&2; exit 1; }
 "$source_dir/codex" --version
 mkdir -p "$prefix/libexec/codex-termux" "$prefix/bin"
-install -m 755 "$source_dir/codex" "$prefix/libexec/codex-termux/codex"
+binary_tmp=$(mktemp "$prefix/libexec/codex-termux/.codex.XXXXXX")
+launcher_tmp=$(mktemp "$prefix/bin/.codex-termux.XXXXXX")
+trap 'for temporary_file in "$binary_tmp" "$launcher_tmp"; do if [[ -f $temporary_file ]]; then unlink "$temporary_file"; fi; done' EXIT
+install -m 755 "$source_dir/codex" "$binary_tmp"
+mv -f "$binary_tmp" "$prefix/libexec/codex-termux/codex"
 launcher="$prefix/bin/codex"
-if [[ -e $launcher ]] && ! grep -q 'codex-termux launcher' "$launcher"; then
-  cp -p "$launcher" "$launcher.before-termux-$(date +%Y%m%d%H%M%S)"
+if [[ -e $launcher || -L $launcher ]] && ! grep -q 'codex-termux launcher' "$launcher"; then
+  cp -Pp "$launcher" "$launcher.before-termux-$(date +%Y%m%d%H%M%S)"
 fi
-cat > "$launcher" <<'LAUNCHER'
+cat > "$launcher_tmp" <<'LAUNCHER'
 #!/data/data/com.termux/files/usr/bin/bash
 # codex-termux launcher
 set -e
@@ -31,5 +35,6 @@ if [[ -f $termux_exec ]]; then
 fi
 exec "$PREFIX/libexec/codex-termux/codex" "$@"
 LAUNCHER
-chmod 755 "$launcher"
+chmod 755 "$launcher_tmp"
+mv -f "$launcher_tmp" "$launcher"
 "$launcher" --version
