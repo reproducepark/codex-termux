@@ -5,7 +5,7 @@ Termux F-Droid, without proot or a Linux distribution. It is based on OpenAI's
 stable **0.155.1** release (`rust-v0.155.1`), checked on 2026-09-21.
 
 - Upstream commit: `be2951ea34f0d295ed0becf97079f92fa5f6950e`
-- Rust: **1.95.0**, target `aarch64-linux-android`
+- Rust: **1.95.0**, target `aarch64-linux-android`, with the checked-in Android file-lock patch to `std`
 - Android NDK: **r29 / 29.0.14206865**, API level **28**
 - ELF: Android PIE, `/system/bin/linker64`, 16 KiB page alignment
 - Cargo dependencies: committed `codex-rs/Cargo.lock`; builds use `--locked`
@@ -57,10 +57,13 @@ export ANDROID_NDK_HOME=/absolute/path/to/android-ndk-r29
 bash termux/build.sh
 ```
 
+The first optimized build is substantial. The script defaults to two concurrent
+Cargo jobs to limit peak memory; set `CARGO_BUILD_JOBS` explicitly to override.
+
 The output is `termux/dist/`, containing the stripped native executable, a
 compressed release archive, `SHA256SUMS`, ELF metadata, and `build-info.json`.
-The latter records the exact fork commit, toolchain, lockfile digest, dirty-tree
-state and binary digest. The source is built on a host and the executable runs
+The latter records the exact fork commit, toolchain, std patch hash, lockfile digest,
+dirty-tree state and binary digest. The source is built on a host and the executable runs
 natively on the phone; this is not an on-phone source compilation recipe.
 
 The **Termux ARM64** GitHub Actions workflow runs the same script from a fresh
@@ -70,6 +73,16 @@ versions and absolute debug paths can differ. Archive timestamps and ownership
 are normalized.
 
 ## Patch scope
+
+Rust 1.95.0's stock Android standard library returns `Unsupported` for `File::lock`,
+`try_lock`, shared locks, and unlock. This prevents real Codex app-server startup,
+PATH helper creation, and rollout/history locking even when `--version` works.
+The checked-in patch enables the existing Unix `flock` implementation on Android
+for all five methods; it does not skip locking. `prepare-toolchain.py` verifies the
+original source SHA-256 and creates a private sysroot overlay. The original Rust
+installation is not modified. Cargo's `-Z build-std` plumbing is enabled using
+`RUSTC_BOOTSTRAP=1`, while both compiler and rust-src stay pinned to 1.95.0.
+`file-lock-probe` exercises exclusive/shared contention and unlock on the phone.
 
 The Android-only `openssl-sys` dependency enables vendored OpenSSL so the binary
 does not depend on a host OpenSSL installation or a matching Termux libssl ABI.

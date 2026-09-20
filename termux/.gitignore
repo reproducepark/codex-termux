@@ -1,2 +1,7 @@
 /dist/
 /__pycache__/
+
+/.toolchain/
+
+/target/
+/file-lock-probe/target/

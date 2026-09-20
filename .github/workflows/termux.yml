@@ -10,6 +10,8 @@ jobs:
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    env:
+      CARGO_BUILD_JOBS: 4
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
@@ -21,6 +23,16 @@ jobs:
           sudo apt-get install -y cmake ninja-build pkg-config perl make
           "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" 'ndk;29.0.14206865'
           echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/29.0.14206865" >> "$GITHUB_ENV"
+      - name: Cache Rust build products
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: |
+            termux/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: termux-std195-${{ runner.os }}-${{ hashFiles('codex-rs/Cargo.lock', 'termux/rust-1.95.0-android-file-lock.patch') }}-${{ github.sha }}
+          restore-keys: |
+            termux-std195-${{ runner.os }}-${{ hashFiles('codex-rs/Cargo.lock', 'termux/rust-1.95.0-android-file-lock.patch') }}-
       - name: Build from locked sources
         run: bash termux/build.sh
       - name: Check Android ELF
