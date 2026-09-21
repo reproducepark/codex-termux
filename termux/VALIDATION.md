@@ -7,6 +7,21 @@ and adds a Code Mode JS/nested-tool smoke test. The user deferred physical-devic
 verification on 2026-09-21. Do not treat the older checks below as verification of
 this new build.
 
+Preparation checks completed during this rebuild:
+
+- Installer regression test with synthetic executables and GNU tools: missing
+  host rejection, complete-generation installation, previous symlink preservation,
+  corrupt checksum rejection without switching the active installation: pass.
+- Shell/Python syntax and workflow lint: pass.
+- Smoke harness sanity check against the existing macOS app CLI
+  `0.155.0-alpha.9.2`: direct tools and Code Mode JS/nested tools pass; a separate
+  copied CLI without the host reproduces the reported warning and is rejected by
+  the test. This validates the test harness only, not the new Android binaries.
+- First rebuild attempt `2754e88` failed in V8 GN generation on an undefined
+  `android_ndk_version` marker. That marker is restored to pinned NDK r29.
+  The recipe also restores missing ICU data and Chromium Rust sources from the
+  exact V8 submodule revisions, without changing the locked V8 version.
+
 ## 0.155.1-termux.1 — historical, incomplete bundle
 
 A subsequent real model session failed to start `codex-code-mode-host`, which was
