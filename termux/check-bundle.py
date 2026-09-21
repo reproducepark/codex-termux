@@ -44,6 +44,9 @@ with tarfile.open(out / "codex-0.155.1-termux.2-aarch64.tar.gz") as archive:
     expected = {
         *names,
         "install.sh",
+        "verify-device.py",
+        "agent-smoke.py",
+        "smoke.py",
         "build-info.json",
         "BINARY_SHA256SUMS",
         "elf.txt",

@@ -88,7 +88,8 @@ else:
         f"{sha(out / name)}  {name}\n" for name in (*binaries, "termux-file-lock-probe")
     )
 )
-shutil.copyfile(repo / "termux/install.sh", out / "install.sh")
+for name in ("install.sh", "verify-device.py", "agent-smoke.py", "smoke.py"):
+    shutil.copyfile(repo / "termux" / name, out / name)
 for name in ("LICENSE", "NOTICE"):
     shutil.copyfile(repo / name, out / name)
 archive = out / "codex-0.155.1-termux.2-aarch64.tar.gz"
@@ -101,6 +102,9 @@ with (
         for name in (
             *binaries,
             "install.sh",
+            "verify-device.py",
+            "agent-smoke.py",
+            "smoke.py",
             "build-info.json",
             "BINARY_SHA256SUMS",
             "elf.txt",
