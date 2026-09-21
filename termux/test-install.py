@@ -74,6 +74,9 @@ with tempfile.TemporaryDirectory(prefix="codex-installer-") as temporary:
     install(False)
     assert launcher.is_symlink() and launcher.resolve() == old_target
     (release / "saved-host").rename(host)
+    # Source executability is unnecessary: installation stages files internally.
+    for name in binaries:
+        (release / name).chmod(0o644)
     install(True)
     current = prefix / "libexec/codex-termux/current"
     installed = current.resolve()
@@ -88,6 +91,18 @@ with tempfile.TemporaryDirectory(prefix="codex-installer-") as temporary:
     host.write_text("#!/bin/sh\necho corrupt\n")
     install(False)
     assert current.resolve() == installed
+    # Even a checksum-consistent helper that cannot start must not be activated.
+    host.write_text("#!/bin/sh\nexit 42\n")
+    (release / "BINARY_SHA256SUMS").write_text(
+        "".join(
+            f"{hashlib.sha256((release / name).read_bytes()).hexdigest()}  {name}\n"
+            for name in binaries
+        )
+    )
+    generations = set(installed.parent.iterdir())
+    install(False)
+    assert current.resolve() == installed
+    assert set(installed.parent.iterdir()) == generations
     print(
-        "PASS missing-host rejection, complete generation install, symlink backup, checksum failure preserves active install"
+        "PASS missing host, non-executable source, complete install, symlink backup, checksum/startup failure preserves active install"
     )
