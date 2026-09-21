@@ -1,6 +1,6 @@
 # Validation history
 
-## 0.155.1-termux.2 — CI built, physical-device validation deferred
+## 0.155.1-termux.2 — CI and physical-device checks passed
 
 Date: 2026-09-21 (Asia/Seoul).
 
@@ -41,12 +41,48 @@ vendored OpenSSL independently on Android. V8's upstream sandbox feature stays
 enabled. Rust, NDK and source versions remain pinned; independent bit-for-bit
 rebuild equality has not been established.
 
-The user deferred physical-device verification. The included `verify-device.py`
-is ready to check app-server, shell/PTY, direct tools, and Code Mode JavaScript
-plus nested shell calls on the phone using a temporary Codex home and local mock
-API. **Android V8 execution/JIT, authenticated model turns, and optional
-integrations remain unverified for this revision.** The older device results
-below must not be treated as validation of the new bundle.
+### Physical-device verification of the published revision
+
+The user made the phone available again on 2026-09-21. The published archive
+(SHA-256 `3a3f780916814d4a479a3d1668c8a958332a9bb03e596d089e9dcc93046d9375`)
+was transferred to the device, verified, and installed using its bundled installer.
+The installed binaries also pass their bundled `BINARY_SHA256SUMS` checks.
+
+Device: Samsung SM-S948N, Android 17, aarch64, 4096-byte kernel pages,
+Termux 0.118.3 reporting `TERMUX_APK_RELEASE=F_DROID`. Native Bionic execution;
+no proot or Linux container.
+
+- CLI, Code Mode host and responses-proxy startup checks: pass.
+- Android std file locking and NDK outlined atomic probe: pass.
+- App-server initialization, shell, file write/read, ripgrep, pipes, Korean UTF-8,
+  `/usr/bin/env bash` shebang: pass.
+- PTY stdin/stdout and resize to 32 rows by 100 columns: pass.
+- Direct tool HTTP/SSE round trip through the actual Android CLI: pass.
+- Code Mode HTTP/SSE round trip: pass. Actual Android V8 evaluation returned
+  `JS_ENGINE_OK:42`; a nested `tools.exec_command` wrote and read `AGENT_FILE_OK`.
+  The harness rejected direct-tool fallback and missing-host warnings and
+  independently read back the resulting file.
+- Native phone TUI restarted and rendered the configured model/input prompt: pass.
+- Authenticated ChatGPT request with `gpt-5.6-sol`, low reasoning and Code Mode:
+  pass. The model called `exec`, evaluated `6 * 7`, called the real shell and
+  returned `LIVE_CODE_MODE_OK`. The test session's `custom_tool_call_output`
+  independently contains both `LIVE_JS_OK:42` and `LIVE_SHELL_OK`.
+  The CLI's human-readable output omits the top-level JS text, so the initial
+  stdout-only assertion was insufficient; the exact test session record confirms it.
+  The prior `host executable was not found` warning did not recur.
+
+The account-free tests used the release's `smoke.py` and `agent-smoke.py` driven
+from the host over SSH/ADB loopback forwarding, with disposable on-device Codex
+homes and work directories. The authenticated check used the existing login and
+a disposable work directory. No login or configuration files were copied or
+changed. Test directories and temporary remote access were cleaned up.
+
+These checks establish native V8 execution and nested tool operation on this
+phone, not exhaustive JIT coverage, operation on a 16 KiB-page kernel, or all
+optional integrations. The proxy was started with `--help`; a full proxy routing
+integration was not tested. Android OS sandbox support remains unavailable;
+execution tests explicitly selected an unsandboxed policy in temporary folders.
+Independent full-source bit-for-bit rebuild equality remains unverified.
 
 ## 0.155.1-termux.1 — historical, incomplete bundle
 

@@ -35,6 +35,8 @@ for that check. The existing direct-tool mode remains a separate test.
 
 The termux.1 device tests did **not** exercise Code Mode. A real user session
 exposed the omitted helper. Those older tests must not be interpreted as full
-runtime validation. Physical-device validation of termux.2 is deferred at the
-user's request; successful CI compilation/packaging does not establish Android
-V8 runtime, JIT, or authenticated model behavior.
+runtime validation. Published termux.2 now passes native Android V8 JavaScript,
+nested shell calls, app-server/shell/PTY checks, and an authenticated model turn
+on Android 17 with Termux F-Droid 0.118.3. See [VALIDATION.md](VALIDATION.md).
+This does not certify every optional integration or a full responses-proxy routing
+flow; the proxy startup check is narrower.

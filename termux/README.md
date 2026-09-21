@@ -159,10 +159,11 @@ model quality. See `VALIDATION.md` for release evidence and remaining limitation
 
 See [COMPONENTS.md](COMPONENTS.md) for the complete runtime audit and platform
 exclusions. Revision 1 omitted the Code Mode host and responses proxy. Revision 2
-adds both and a Code Mode-specific test. Its physical-device validation is deferred;
+adds both and a Code Mode-specific test. The published package now passes native
+Android Code Mode, shell/PTY and authenticated model checks on Termux F-Droid;
 see [VALIDATION.md](VALIDATION.md) for the exact completed checks.
 
-When the phone is available, run the included account-free checks from the
+To repeat the included account-free checks on your phone, run them from the
 extracted release directory:
 
 ```bash
@@ -174,4 +175,5 @@ This uses a temporary Codex home and project, a local mock Responses endpoint,
 and an explicit unsandboxed test policy; it does not use your OpenAI login or
 change your normal configuration. It verifies app-server, shell/PTY, direct
 calls, and Code Mode JavaScript plus nested shell calls. Authenticated model
-behavior and optional integrations still require separate checks.
+behavior was separately checked on the validation device; optional integrations
+still require separate checks.
