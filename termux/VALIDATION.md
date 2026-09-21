@@ -1,33 +1,52 @@
 # Validation history
 
-## 0.155.1-termux.2 — build in progress, device validation deferred
+## 0.155.1-termux.2 — CI built, physical-device validation deferred
 
-The rebuild adds the Code Mode host and responses proxy, verifies every binary,
-and adds a Code Mode JS/nested-tool smoke test. The user deferred physical-device
-verification on 2026-09-21. Do not treat the older checks below as verification of
-this new build.
+Date: 2026-09-21 (Asia/Seoul).
 
-Preparation checks completed during this rebuild:
+The [GitHub Actions build](https://github.com/reproducepark/codex-termux/actions/runs/35582465949)
+compiled this revision at `f6f7ae401d4aa6b10df387df589eab57a44cae95`.
+It builds and packages `codex`, `codex-code-mode-host`, and
+`codex-responses-api-proxy` together. `build-info.json` records the compilation
+commit, any later packaging commit, and each executable's SHA-256.
 
-- Installer regression test with synthetic executables and GNU tools: missing
-  host rejection, complete-generation installation, previous symlink preservation,
-  corrupt checksum rejection, and helper startup failure without switching the
-  active installation: pass.
+Completed checks:
+
+- Locked Android ARM64 release compilation of all three executables and the
+  standalone file-lock/NDK-atomic probe: pass.
+- Every executable: Android AArch64 PIE, `/system/bin/linker64`, at least 16 KiB
+  LOAD alignment, and dependencies restricted to Android system libraries
+  (`libc`, `libm`, `libdl`, and where needed `liblog`): pass.
+- Required archive contents, archived bytes, per-binary hashes and build
+  provenance consistency: pass.
+- Installer regression tests on Linux with synthetic executables: pass. They
+  cover missing helpers, non-executable download sources, symlink preservation,
+  corrupt checksums and helper startup failure. Failed checks preserve the
+  active installation; these fixtures do not execute the Android binaries.
 - Shell/Python syntax and workflow lint: pass.
-- Smoke harness sanity check against the existing macOS app CLI
-  `0.155.0-alpha.9.2`: direct tools and Code Mode JS/nested tools pass; a separate
-  copied CLI without the host reproduces the reported warning and is rejected by
-  the test. This validates the test harness only, not the new Android binaries.
-- Source preparation restores the NDK r29 marker and the Android build scripts,
-  host/Android ICU build data and Chromium Rust sources omitted by the published
-  V8 crate. All extra sources use its exact upstream submodule revisions.
-- Bindgen uses the pinned NDK Clang/libclang 21 and API-28 sysroot. A rebuild
-  completed all 4,484 V8 C++ build steps but exposed host-header leakage in
-  binding generation; the explicit target sysroot corrects that path.
-- Each executable explicitly enables vendored OpenSSL on Android, so independent
-  helper builds do not depend on CLI feature unification or host OpenSSL.
 - All 1,333 external Cargo versions, sources and checksums remain identical to
-  the upstream stable lockfile. `just bazel-lock-update` leaves its output unchanged.
+  upstream stable `rust-v0.155.1`. `just bazel-lock-update` leaves its output
+  unchanged. Rust formatting checks pass.
+- Smoke harness sanity check against the existing macOS app CLI
+  `0.155.0-alpha.9.2`: direct tools and Code Mode JS/nested tools pass. A copied
+  CLI without the host reproduces the reported missing-host failure and the
+  harness rejects it even if the CLI exits with status zero. This validates the
+  harness only, not the new Android runtime.
+
+The source recipe restores the NDK r29 marker and Android build scripts,
+host/Android ICU build data, and Chromium Rust sources omitted by the published
+V8 crate, using its exact upstream submodule revisions. Bindgen uses NDK
+Clang/libclang 21 with an explicit API-28 Android sysroot. Each executable enables
+vendored OpenSSL independently on Android. V8's upstream sandbox feature stays
+enabled. Rust, NDK and source versions remain pinned; independent bit-for-bit
+rebuild equality has not been established.
+
+The user deferred physical-device verification. The included `verify-device.py`
+is ready to check app-server, shell/PTY, direct tools, and Code Mode JavaScript
+plus nested shell calls on the phone using a temporary Codex home and local mock
+API. **Android V8 execution/JIT, authenticated model turns, and optional
+integrations remain unverified for this revision.** The older device results
+below must not be treated as validation of the new bundle.
 
 ## 0.155.1-termux.1 — historical, incomplete bundle
 
