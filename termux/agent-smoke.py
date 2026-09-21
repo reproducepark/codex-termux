@@ -15,6 +15,11 @@ import threading
 
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--port", type=int, required=True)
+parser.add_argument(
+    "--code-mode",
+    action="store_true",
+    help="Require Code Mode JS execution and nested tools; pass --enable code_mode_only to Codex",
+)
 parser.add_argument("command", nargs=argparse.REMAINDER)
 args = parser.parse_args()
 command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -34,7 +39,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         outputs = [
             item
             for item in request.get("input", [])
-            if item.get("type") == "function_call_output"
+            if item.get("type") in ("function_call_output", "custom_tool_call_output")
         ]
         if outputs:
             results.extend(outputs)
@@ -56,6 +61,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     }
                 ),
             }
+            if args.code_mode:
+                item = {
+                    "type": "custom_tool_call",
+                    "call_id": "termux-call",
+                    "name": "exec",
+                    "input": 'store("n", 6); text("JS_ENGINE_OK:" + (load("n") * 7)); '
+                    'text(await tools.exec_command({cmd: "printf AGENT_FILE_OK > agent-test.txt; cat agent-test.txt", max_output_tokens: 1000}));',
+                }
         events = [
             {"type": "response.created", "response": {"id": "response-termux"}},
             {"type": "response.output_item.done", "item": item},
@@ -92,9 +105,17 @@ try:
     assert process.returncode == 0, process.returncode
     assert len(requests) >= 2, "No second model request after the tool call"
     assert "AGENT_FILE_OK" in json.dumps(results), results
+    if args.code_mode:
+        assert "JS_ENGINE_OK:42" in json.dumps(results), results
+        assert "Code Mode is unavailable" not in process.stderr, process.stderr
+        assert not any(
+            item.get("type") == "function_call_output" for item in results
+        ), "Unexpected direct-tool fallback"
     assert "TERMUX_AGENT_OK" in process.stdout, "Missing final model response"
     print(
-        "PASS actual Codex exec: HTTP/SSE, tool dispatch, shell, file I/O, tool result"
+        "PASS actual Codex exec: HTTP/SSE, "
+        + ("Code Mode JS + nested tool, " if args.code_mode else "direct tool, ")
+        + "shell, file I/O, tool result"
     )
 finally:
     server.shutdown()

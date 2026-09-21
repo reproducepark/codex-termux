@@ -72,12 +72,21 @@ else:
         "cargo_lock_sha256": sha(repo / "codex-rs/Cargo.lock"),
         "binary_sha256": sha(out / "codex"),
         "binaries_sha256": {name: sha(out / name) for name in binaries},
-        "v8": {"version": "150.4.0", "from_source": True, "sandbox": True,
-               "prepare_sha256": sha(repo / "termux/prepare-v8.py"),
-               "gn_args": os.environ["EXTRA_GN_ARGS"]},
+        "v8": {
+            "version": "150.4.0",
+            "from_source": True,
+            "sandbox": True,
+            "prepare_sha256": sha(repo / "termux/prepare-v8.py"),
+            "gn_args": os.environ["EXTRA_GN_ARGS"],
+        },
     }
 
 (out / "build-info.json").write_text(json.dumps(metadata, indent=2) + "\n")
+(out / "BINARY_SHA256SUMS").write_text(
+    "".join(
+        f"{sha(out / name)}  {name}\n" for name in (*binaries, "termux-file-lock-probe")
+    )
+)
 shutil.copyfile(repo / "termux/install.sh", out / "install.sh")
 for name in ("LICENSE", "NOTICE"):
     shutil.copyfile(repo / name, out / name)
@@ -92,6 +101,7 @@ with (
             *binaries,
             "install.sh",
             "build-info.json",
+            "BINARY_SHA256SUMS",
             "elf.txt",
             "LICENSE",
             "NOTICE",
@@ -109,6 +119,7 @@ with (
             tar.addfile(entry, io.BytesIO(data))
 (out / "SHA256SUMS").write_text(
     "".join(
-        f"{sha(p)}  {p.name}\n" for p in [*(out / name for name in binaries), archive, out / "install.sh"]
+        f"{sha(p)}  {p.name}\n"
+        for p in [*(out / name for name in binaries), archive, out / "install.sh"]
     )
 )

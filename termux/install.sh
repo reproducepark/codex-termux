@@ -5,14 +5,34 @@ prefix=${PREFIX:-/data/data/com.termux/files/usr}
 source_dir=${1:?Usage: bash install.sh /path/to/extracted-release}
 [[ $(uname -m) == aarch64 ]] || { echo 'This package requires ARM64/aarch64.' >&2; exit 1; }
 [[ -d $prefix && -x $prefix/bin/bash ]] || { echo 'Run this inside Termux.' >&2; exit 1; }
-[[ -f $source_dir/codex ]] || { echo 'Missing codex executable.' >&2; exit 1; }
+for name in codex codex-code-mode-host codex-responses-api-proxy termux-file-lock-probe; do
+  [[ -x $source_dir/$name ]] || { echo "Missing executable: $name" >&2; exit 1; }
+done
+for name in git rg curl; do
+  command -v "$name" >/dev/null || { echo 'Install dependencies: pkg install ca-certificates git ripgrep curl termux-exec' >&2; exit 1; }
+done
+(cd "$source_dir" && sha256sum --strict -c BINARY_SHA256SUMS)
 "$source_dir/codex" --version
-mkdir -p "$prefix/libexec/codex-termux" "$prefix/bin"
-binary_tmp=$(mktemp "$prefix/libexec/codex-termux/.codex.XXXXXX")
+"$source_dir/codex-code-mode-host" --help >/dev/null
+"$source_dir/codex-responses-api-proxy" --help >/dev/null
+probe_file=$(mktemp "$prefix/tmp/codex-install-lock.XXXXXX")
+trap 'unlink "$probe_file"' EXIT
+"$source_dir/termux-file-lock-probe" "$probe_file"
+unlink "$probe_file"
+trap - EXIT
+base="$prefix/libexec/codex-termux"
+mkdir -p "$base/releases" "$prefix/bin"
+release_dir=$(mktemp -d "$base/releases/0.155.1-termux.2.XXXXXX")
 launcher_tmp=$(mktemp "$prefix/bin/.codex-termux.XXXXXX")
-trap 'for temporary_file in "$binary_tmp" "$launcher_tmp"; do if [[ -f $temporary_file ]]; then unlink "$temporary_file"; fi; done' EXIT
-install -m 755 "$source_dir/codex" "$binary_tmp"
-mv -f "$binary_tmp" "$prefix/libexec/codex-termux/codex"
+current_tmp="$base/.current.$$"
+trap 'if [[ -f $launcher_tmp ]]; then unlink "$launcher_tmp"; fi; if [[ -L $current_tmp ]]; then unlink "$current_tmp"; fi' EXIT
+for name in codex codex-code-mode-host codex-responses-api-proxy; do
+  install -m 755 "$source_dir/$name" "$release_dir/$name"
+done
+install -m 644 "$source_dir/build-info.json" "$release_dir/build-info.json"
+# Switch the whole set together; the host resolves alongside the real CLI path.
+ln -s "$release_dir" "$current_tmp"
+mv -fT "$current_tmp" "$base/current"
 launcher="$prefix/bin/codex"
 if [[ -e $launcher || -L $launcher ]] && ! grep -q 'codex-termux launcher' "$launcher"; then
   cp -Pp "$launcher" "$launcher.before-termux-$(date +%Y%m%d%H%M%S)"
@@ -30,11 +50,12 @@ export SSL_CERT_DIR="${SSL_CERT_DIR:-$PREFIX/etc/tls/certs}"
 # Termux's own exec shim in tool subprocesses so /usr/bin/env shebangs work.
 termux_exec="$PREFIX/lib/libtermux-exec.so"
 if [[ -f $termux_exec ]]; then
-    exec "$PREFIX/libexec/codex-termux/codex" \
+    exec "$PREFIX/libexec/codex-termux/current/codex" \
         -c "shell_environment_policy.set.LD_PRELOAD=\"$termux_exec\"" "$@"
 fi
-exec "$PREFIX/libexec/codex-termux/codex" "$@"
+exec "$PREFIX/libexec/codex-termux/current/codex" "$@"
 LAUNCHER
 chmod 755 "$launcher_tmp"
 mv -f "$launcher_tmp" "$launcher"
-"$launcher" --version
+# Explicit bash also lets the packaging test exercise this on a Linux runner.
+"$prefix/bin/bash" "$launcher" --version

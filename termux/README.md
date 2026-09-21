@@ -25,15 +25,16 @@ release. In their download directory:
 ```bash
 sha256sum --ignore-missing -c SHA256SUMS
 mkdir -p codex-termux-release
-tar -xzf codex-0.155.1-termux.1-aarch64.tar.gz -C codex-termux-release
+tar -xzf codex-0.155.1-termux.2-aarch64.tar.gz -C codex-termux-release
 bash install.sh "$PWD/codex-termux-release"
 codex --version
 codex login --device-auth
 codex
 ```
 
-The installer places the native binary at `$PREFIX/libexec/codex-termux/codex`
-and a launcher at `$PREFIX/bin/codex`. It backs up an existing unrelated launcher.
+The installer stages all three native executables in a versioned directory under
+`$PREFIX/libexec/codex-termux/releases/`, switches `current` as one set,
+and installs a launcher at `$PREFIX/bin/codex`. It backs up an existing unrelated launcher.
 The launcher supplies Termux certificate, shell, and temporary-directory defaults.
 It also sets the known Termux `libtermux-exec.so` path for shell tool subprocesses
 using a command-line environment policy override: Codex's startup hardening clears
@@ -47,35 +48,38 @@ sandbox, select it explicitly (for example `codex --sandbox danger-full-access`)
 and work inside a dedicated project directory. Android app isolation still applies;
 this setting grants access to the Termux app's accessible files, not Android root.
 
-## Rebuild on macOS or Linux x86_64
+## Rebuild on Linux x86_64 or GitHub Actions
 
-Install Git, Rustup, CMake, Ninja, Perl, Make, patch and Python 3. Obtain the exact NDK
+Install Git, Rustup, CMake, Ninja, Perl, Make, patch, Python 3 and Clang 19 libclang.
+The complete bundle builds V8 from source and requires Linux x86_64. Use the
+GitHub Actions workflow to avoid compiling on a laptop. Obtain the exact NDK
 revision above via the Android SDK manager or Google's NDK archive. Then:
 
 ```bash
 git clone --branch termux/0.155.1 https://github.com/reproducepark/codex-termux.git
 cd codex-termux
 # For a release rebuild, check out its immutable tag:
-git checkout v0.155.1-termux.1
+git checkout v0.155.1-termux.2
 export ANDROID_NDK_HOME=/absolute/path/to/android-ndk-r29
 bash termux/build.sh
 ```
 
-The first optimized build is substantial. The script defaults to two concurrent
+The first optimized build, including V8, is substantial. V8 and its Chromium
+compiler inputs are pinned by the locked crate; Android auxiliary repositories
+are checked out at the revisions in its `v8/DEPS`, and NDK r29 is reused. The script defaults to two concurrent
 Cargo jobs to limit peak memory; set `CARGO_BUILD_JOBS` explicitly to override.
 Release optimization and thin LTO are retained; unused debug tables are disabled
 because the distributed executable is stripped.
 
 The output is `termux/dist/`, containing the stripped native executable, a
-compressed release archive, `SHA256SUMS`, ELF metadata, and `build-info.json`.
+compressed release archive, `SHA256SUMS`, per-binary checksums, ELF metadata, and `build-info.json`.
 The latter records the exact fork commit, toolchain, std patch hash, lockfile digest,
 dirty-tree state and binary digest. The source is built on a host and the executable runs
 natively on the phone; this is not an on-phone source compilation recipe.
 
 The **Termux ARM64** GitHub Actions workflow runs the same script from a fresh
-Ubuntu host with the pinned NDK. This is a reproducible source/build procedure;
-byte-for-byte equality across macOS and Linux hosts is **not claimed**. Host tool
-versions and absolute debug paths can differ. Archive timestamps and ownership
+Ubuntu host with the pinned NDK. This is a pinned, repeatable source/build procedure;
+byte-for-byte equality between independent builds is **not claimed**. Archive timestamps and ownership
 are normalized.
 
 ## Patch scope
@@ -145,3 +149,10 @@ For host-driven phone validation, forward the loopback port with `adb reverse`
 and prefix the Codex command with SSH. The test writes `agent-test.txt` in its cwd.
 It requires no real account or model, and validates tool execution rather than
 model quality. See `VALIDATION.md` for release evidence and remaining limitations.
+
+## Component coverage and validation
+
+See [COMPONENTS.md](COMPONENTS.md) for the complete runtime audit and platform
+exclusions. Revision 1 omitted the Code Mode host and responses proxy. Revision 2
+adds both and a Code Mode-specific test. Its physical-device validation is deferred;
+see [VALIDATION.md](VALIDATION.md) for the exact completed checks.

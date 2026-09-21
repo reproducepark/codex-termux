@@ -1,4 +1,18 @@
-# Validation of 0.155.1-termux.1
+# Validation history
+
+## 0.155.1-termux.2 — build in progress, device validation deferred
+
+The rebuild adds the Code Mode host and responses proxy, verifies every binary,
+and adds a Code Mode JS/nested-tool smoke test. The user deferred physical-device
+verification on 2026-09-21. Do not treat the older checks below as verification of
+this new build.
+
+## 0.155.1-termux.1 — historical, incomplete bundle
+
+A subsequent real model session failed to start `codex-code-mode-host`, which was
+omitted from this package. The mock agent test below exercised direct tools only,
+so its success did not establish Code Mode support. The responses proxy was also
+absent. The original login status below is historical, not the current phone state.
 
 Date: 2026-09-21 (Asia/Seoul).
 

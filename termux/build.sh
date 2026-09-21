@@ -63,4 +63,5 @@ done
 cp "$CARGO_TARGET_DIR/aarch64-linux-android/release/termux-file-lock-probe" "$out/"
 "$ndk_bin/llvm-strip" "$out/termux-file-lock-probe"
 python3 "$repo/termux/package.py" "$repo" "$out"
+python3 "$repo/termux/check-bundle.py" "$out" "$ndk_bin/llvm-readelf"
 echo "Build and checksums: $out"

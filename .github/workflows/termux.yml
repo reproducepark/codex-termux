@@ -36,6 +36,8 @@ jobs:
             termux-std195-${{ runner.os }}-${{ hashFiles('codex-rs/Cargo.lock', 'termux/rust-1.95.0-android-file-lock.patch') }}-
       - name: Build from locked sources
         run: bash termux/build.sh
+      - name: Verify installer failure and upgrade behavior
+        run: python3 termux/test-install.py
       - name: Check Android ELF
         run: |
           grep -q 'AArch64' termux/dist/elf.txt

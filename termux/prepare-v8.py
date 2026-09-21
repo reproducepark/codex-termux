@@ -37,11 +37,23 @@ for name, (url, revision) in deps.items():
     destination = root / "third_party" / name
     if not destination.exists():
         subprocess.run(["git", "init", str(destination)], check=True)
-        subprocess.run(["git", "-C", str(destination), "fetch", "--depth=1", url, revision], check=True)
-        subprocess.run(["git", "-C", str(destination), "checkout", "--detach", "FETCH_HEAD"], check=True)
-    actual = subprocess.check_output(["git", "-C", str(destination), "rev-parse", "HEAD"], text=True).strip()
+        subprocess.run(
+            ["git", "-C", str(destination), "fetch", "--depth=1", url, revision],
+            check=True,
+        )
+        subprocess.run(
+            ["git", "-C", str(destination), "checkout", "--detach", "FETCH_HEAD"],
+            check=True,
+        )
+    actual = subprocess.check_output(
+        ["git", "-C", str(destination), "rev-parse", "HEAD"], text=True
+    ).strip()
     assert actual == revision, (name, actual)
 
 # V8's cross-compiled snapshot generator runs on the Linux build machine.
-subprocess.run(["python3", "build/linux/sysroot_scripts/install-sysroot.py", "--arch=amd64"], cwd=root, check=True)
+subprocess.run(
+    ["python3", "build/linux/sysroot_scripts/install-sysroot.py", "--arch=amd64"],
+    cwd=root,
+    check=True,
+)
 print("Prepared rusty_v8 150.4.0 with pinned Android dependencies")
