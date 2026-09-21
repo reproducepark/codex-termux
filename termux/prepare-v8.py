@@ -71,6 +71,12 @@ for name, (url, revision) in deps.items():
 # replacing the crate's own GN/build-script adjustments.
 for name, url, revision, relative in (
     (
+        "build",
+        "https://github.com/denoland/chromium_build.git",
+        "8acb33ac8dceef0503443109c0a92988189563ef",
+        "android",
+    ),
+    (
         "icu",
         "https://chromium.googlesource.com/chromium/deps/icu.git",
         "ee5f27adc28bd3f15b2c293f726d14d2e336cbd5",
@@ -99,7 +105,10 @@ for name, url, revision, relative in (
         ["git", "-C", str(checkout), "rev-parse", "HEAD"], text=True
     ).strip()
     assert actual == revision
-    source, destination = checkout / relative, root / "third_party" / name / relative
+    source = checkout / relative
+    destination = (
+        root / ("build" if name == "build" else f"third_party/{name}") / relative
+    )
     if source.is_dir():
         shutil.copytree(source, destination, dirs_exist_ok=True)
     else:

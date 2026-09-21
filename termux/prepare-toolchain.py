@@ -46,13 +46,15 @@ else:
     ).hexdigest()
 for tool in ("rustc", "rustdoc"):
     wrapper = overlay / "bin" / (tool + "-termux")
-    wrapper.write_text(
+    contents = (
         "#!/bin/sh\nexec "
         + shlex.quote(str(original / "bin" / tool))
         + " --sysroot "
         + shlex.quote(str(overlay))
         + ' "$@"\n'
     )
+    if not wrapper.exists() or wrapper.read_text() != contents:
+        wrapper.write_text(contents)
     wrapper.chmod(0o755)
 assert subprocess.check_output(
     [str(overlay / "bin/rustc-termux"), "--print", "sysroot"], text=True

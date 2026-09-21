@@ -16,6 +16,8 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
+      - name: Verify installer failure and upgrade behavior
+        run: python3 termux/test-install.py
       - name: Install build tools and pinned Android NDK
         shell: bash
         run: |
@@ -34,10 +36,22 @@ jobs:
           key: termux-std195-${{ runner.os }}-${{ hashFiles('codex-rs/Cargo.lock', 'termux/rust-1.95.0-android-file-lock.patch') }}-${{ github.sha }}
           restore-keys: |
             termux-std195-${{ runner.os }}-${{ hashFiles('codex-rs/Cargo.lock', 'termux/rust-1.95.0-android-file-lock.patch') }}-
+      - name: Restore patched Rust sources without changing timestamps
+        id: std-cache
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: termux/.toolchain
+          key: termux-overlay-${{ runner.os }}-1.95.0-${{ hashFiles('termux/rust-1.95.0-android-file-lock.patch', 'termux/prepare-toolchain.py') }}
       - name: Build from locked sources
-        run: bash termux/build.sh
-      - name: Verify installer failure and upgrade behavior
-        run: python3 termux/test-install.py
+        shell: bash
+        run: bash termux/build.sh 2>&1 | tee termux/build.log
+      - name: Upload failed build diagnostics before saving the cache
+        if: failure()
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: termux-build-diagnostics
+          path: termux/build.log
+          if-no-files-found: ignore
       - name: Check Android ELF
         run: |
           grep -q 'AArch64' termux/dist/elf.txt
@@ -57,3 +71,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
           key: ${{ steps.rust-cache.outputs.cache-primary-key }}
+      - name: Save patched Rust sources even after a later failure
+        if: ${{ always() && steps.std-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: termux/.toolchain
+          key: ${{ steps.std-cache.outputs.cache-primary-key }}

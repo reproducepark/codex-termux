@@ -49,7 +49,10 @@ python3 "$repo/termux/prepare-v8.py"
 cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android \
   --manifest-path "$repo/termux/file-lock-probe/Cargo.toml"
 cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android \
-  -p codex-code-mode-host --bin codex-code-mode-host \
+  -p codex-code-mode-host --bin codex-code-mode-host
+# Finish V8 before starting the large CLI build, so Android porting failures
+# fail early and Ninja does not compete with CLI LTO for memory.
+cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android \
   -p codex-responses-api-proxy --bin codex-responses-api-proxy \
   -p codex-cli --bin codex "$@"
 out="$repo/termux/dist"
