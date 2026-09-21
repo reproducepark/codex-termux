@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build pkg-config perl make libclang-19-dev
+          sudo apt-get install -y cmake ninja-build pkg-config perl make
           "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" 'ndk;29.0.14206865'
           echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/29.0.14206865" >> "$GITHUB_ENV"
       - name: Cache Rust build products

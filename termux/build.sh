@@ -41,7 +41,12 @@ export RUSTC_BOOTSTRAP=1
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$repo/termux/target}"
 cd "$repo/codex-rs"
 export V8_FROM_SOURCE=1
-export LIBCLANG_PATH="${LIBCLANG_PATH:-/usr/lib/llvm-19/lib}"
+# Bindgen must parse Android headers with the same pinned NDK, not host glibc.
+# NDK r29 includes libclang 21, required by this V8 revision's libc++ headers.
+export LIBCLANG_PATH="$ndk_bin/../lib"
+export CLANG_PATH="$ndk_bin/clang"
+export BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--target=aarch64-linux-android28 --sysroot=\"$ndk_bin/../sysroot\""
+[[ -f $LIBCLANG_PATH/libclang.so ]] || { echo 'Missing NDK libclang.so' >&2; exit 1; }
 export EXTRA_GN_ARGS='default_min_sdk_version=28 android_ndk_api_level=28 symbol_level=0'
 cargo +1.95.0 fetch --locked --target aarch64-linux-android
 python3 "$repo/termux/prepare-v8.py"

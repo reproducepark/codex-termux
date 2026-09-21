@@ -11,16 +11,23 @@ Preparation checks completed during this rebuild:
 
 - Installer regression test with synthetic executables and GNU tools: missing
   host rejection, complete-generation installation, previous symlink preservation,
-  corrupt checksum rejection without switching the active installation: pass.
+  corrupt checksum rejection, and helper startup failure without switching the
+  active installation: pass.
 - Shell/Python syntax and workflow lint: pass.
 - Smoke harness sanity check against the existing macOS app CLI
   `0.155.0-alpha.9.2`: direct tools and Code Mode JS/nested tools pass; a separate
   copied CLI without the host reproduces the reported warning and is rejected by
   the test. This validates the test harness only, not the new Android binaries.
-- First rebuild attempt `2754e88` failed in V8 GN generation on an undefined
-  `android_ndk_version` marker. That marker is restored to pinned NDK r29.
-  The recipe also restores missing ICU data and Chromium Rust sources from the
-  exact V8 submodule revisions, without changing the locked V8 version.
+- Source preparation restores the NDK r29 marker and the Android build scripts,
+  host/Android ICU build data and Chromium Rust sources omitted by the published
+  V8 crate. All extra sources use its exact upstream submodule revisions.
+- Bindgen uses the pinned NDK Clang/libclang 21 and API-28 sysroot. A rebuild
+  completed all 4,484 V8 C++ build steps but exposed host-header leakage in
+  binding generation; the explicit target sysroot corrects that path.
+- Each executable explicitly enables vendored OpenSSL on Android, so independent
+  helper builds do not depend on CLI feature unification or host OpenSSL.
+- All 1,333 external Cargo versions, sources and checksums remain identical to
+  the upstream stable lockfile. `just bazel-lock-update` leaves its output unchanged.
 
 ## 0.155.1-termux.1 — historical, incomplete bundle
 
@@ -31,7 +38,7 @@ absent. The original login status below is historical, not the current phone sta
 
 Date: 2026-09-21 (Asia/Seoul).
 
-## Pinned source and build
+### Pinned source and build
 
 - Upstream stable release: `rust-v0.155.1`, published 2026-09-18.
 - Upstream commit: `be2951ea34f0d295ed0becf97079f92fa5f6950e`.
@@ -43,7 +50,7 @@ Date: 2026-09-21 (Asia/Seoul).
 - `just bazel-lock-update` completes with no generated lockfile changes.
 - Host validation: `just test -p codex-cli --lib`, **17 passed, 0 failed**.
 
-## Physical device
+### Physical device
 
 - Android 17, `arm64-v8a` / `aarch64`, 4096-byte kernel pages.
   ELF 16 KiB alignment is checked separately; execution on a 16 KiB kernel is
@@ -64,9 +71,9 @@ The installer was also exercised in a disposable Termux prefix with an existing
 `codex` symlink. The original target retained its sentinel content, the backup
 retained the symlink, and the replacement launcher was a regular executable.
 
-## Release binary checks
+### Release binary checks
 
-The complete [GitHub Actions build](https://github.com/reproducepark/codex-termux/actions/runs/35533927192)
+The earlier CLI-only [GitHub Actions build](https://github.com/reproducepark/codex-termux/actions/runs/35533927192)
 passed at source commit `e5568591ac4be8fe99ff03c6b21bf11989a5dc76`.
 The release keeps this compilation provenance when installer/documentation files
 are finalized in a later packaging commit.
@@ -96,7 +103,7 @@ Binary SHA-256:
 0451a0de85e0dd68ea70c2fb53b728865c1b1416b769746db798358bac94f0f8
 ```
 
-## Scope and limitations
+### Scope and limitations
 
 The build and tests do not contain or transfer account credentials. Real OpenAI
 inference and authenticated account flows require the user's own login and are

@@ -50,7 +50,8 @@ this setting grants access to the Termux app's accessible files, not Android roo
 
 ## Rebuild on Linux x86_64 or GitHub Actions
 
-Install Git, Rustup, CMake, Ninja, Perl, Make, patch, Python 3 and Clang 19 libclang.
+Install Git, Rustup, CMake, Ninja, Perl, Make, patch, Python 3.12+.
+Bindgen uses Clang/libclang 21 and Android headers from the pinned NDK.
 The complete bundle builds V8 from source and requires Linux x86_64. Use the
 GitHub Actions workflow to avoid compiling on a laptop. Obtain the exact NDK
 revision above via the Android SDK manager or Google's NDK archive. Then:
@@ -66,15 +67,18 @@ bash termux/build.sh
 
 The first optimized build, including V8, is substantial. V8 and its Chromium
 compiler inputs are pinned by the locked crate; Android auxiliary repositories
-are checked out at the revisions in its `v8/DEPS`, and NDK r29 is reused. The script defaults to two concurrent
+are checked out at the revisions in its `v8/DEPS`, and NDK r29 is reused. The
+published V8 crate omits Android build scripts, ICU build data and Chromium Rust
+sources; `prepare-v8.py` restores these from the exact upstream submodule
+revisions. The script defaults to two concurrent
 Cargo jobs to limit peak memory; set `CARGO_BUILD_JOBS` explicitly to override.
 Release optimization and thin LTO are retained; unused debug tables are disabled
 because the distributed executable is stripped.
 
-The output is `termux/dist/`, containing the stripped native executable, a
+The output is `termux/dist/`, containing all three stripped native executables, a
 compressed release archive, `SHA256SUMS`, per-binary checksums, ELF metadata, and `build-info.json`.
 The latter records the exact fork commit, toolchain, std patch hash, lockfile digest,
-dirty-tree state and binary digest. The source is built on a host and the executable runs
+dirty-tree state and each binary digest. The source is built on a host and the executables run
 natively on the phone; this is not an on-phone source compilation recipe.
 
 The **Termux ARM64** GitHub Actions workflow runs the same script from a fresh
@@ -98,8 +102,9 @@ compiler runtime archive for outlined ARM64 atomic helpers omitted by the
 Rust-only `build-std` compiler-builtins. This small probe is linked before the
 large CLI so runtime linkage errors fail early.
 
-The Android-only `openssl-sys` dependency enables vendored OpenSSL so the binary
-does not depend on a host OpenSSL installation or a matching Termux libssl ABI.
+Android-only `openssl-sys` dependencies in all three executable packages enable
+vendored OpenSSL, including when each helper is compiled independently. They
+avoid a host OpenSSL installation or a matching Termux libssl ABI.
 The release tag's lockfile still contained `0.0.0` workspace package versions;
 these are synchronized to `0.155.1`. External package versions remain pinned.
 Upstream sandbox defaults and process hardening are preserved.

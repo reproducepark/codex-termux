@@ -119,7 +119,8 @@ for name, url, revision, relative in (
         shutil.copytree(source, destination, dirs_exist_ok=True)
     else:
         destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(source, destination)
+        if not destination.is_file() or destination.read_bytes() != source.read_bytes():
+            shutil.copyfile(source, destination)
 
 # V8's cross-compiled snapshot generator runs on the Linux build machine.
 subprocess.run(
