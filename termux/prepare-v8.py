@@ -83,6 +83,12 @@ for name, url, revision, relative in (
         "common/icudtl.dat",
     ),
     (
+        "icu",
+        "https://chromium.googlesource.com/chromium/deps/icu.git",
+        "ee5f27adc28bd3f15b2c293f726d14d2e336cbd5",
+        "android/icudtl.dat",
+    ),
+    (
         "rust",
         "https://chromium.googlesource.com/chromium/src/third_party/rust",
         "26e8ff47f18a8d28d6187a04b6a16cb7332356f8",
