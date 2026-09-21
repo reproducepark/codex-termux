@@ -14,13 +14,17 @@ import tempfile
 
 installer = Path(__file__).with_name("install.sh").resolve()
 with tempfile.TemporaryDirectory(prefix="codex-installer-") as temporary:
-    root = Path(temporary)
+    root = Path(temporary).resolve()
     prefix, release, commands = (
         root / name for name in ("prefix", "release", "commands")
     )
     for directory in (prefix / "bin", prefix / "tmp", release, commands):
         directory.mkdir(parents=True)
     (prefix / "bin/bash").symlink_to(shutil.which("bash"))
+    for relative in ("etc/tls/cert.pem", "lib/libtermux-exec.so"):
+        fixture = prefix / relative
+        fixture.parent.mkdir(parents=True, exist_ok=True)
+        fixture.touch()
     for name, body in {"uname": "echo aarch64", "rg": "exit 0"}.items():
         (commands / name).write_text("#!/bin/sh\n" + body + "\n")
         (commands / name).chmod(0o755)

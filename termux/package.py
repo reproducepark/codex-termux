@@ -51,6 +51,7 @@ if existing_info:
     )
 else:
     metadata = {
+        "package_version": "0.155.1-termux.2",
         "upstream_tag": "rust-v0.155.1",
         "upstream_commit": "be2951ea34f0d295ed0becf97079f92fa5f6950e",
         "fork_commit": capture("git", "rev-parse", "HEAD"),

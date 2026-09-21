@@ -11,6 +11,9 @@ done
 for name in git rg curl; do
   command -v "$name" >/dev/null || { echo 'Install dependencies: pkg install ca-certificates git ripgrep curl termux-exec' >&2; exit 1; }
 done
+for dependency in "$prefix/etc/tls/cert.pem" "$prefix/lib/libtermux-exec.so"; do
+  [[ -r $dependency ]] || { echo "Missing $dependency; run: pkg install ca-certificates termux-exec" >&2; exit 1; }
+done
 (cd "$source_dir" && sha256sum --strict -c BINARY_SHA256SUMS)
 "$source_dir/codex" --version
 "$source_dir/codex-code-mode-host" --help >/dev/null
