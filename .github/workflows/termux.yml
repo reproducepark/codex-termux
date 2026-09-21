@@ -9,7 +9,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 240
     env:
       CARGO_BUILD_JOBS: 4
     steps:
@@ -20,7 +20,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build pkg-config perl make
+          sudo apt-get install -y cmake ninja-build pkg-config perl make libclang-19-dev
           "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" 'ndk;29.0.14206865'
           echo "ANDROID_NDK_HOME=${ANDROID_HOME}/ndk/29.0.14206865" >> "$GITHUB_ENV"
       - name: Cache Rust build products

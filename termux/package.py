@@ -13,6 +13,7 @@ import sys
 import tarfile
 
 repo, out = map(Path, sys.argv[1:])
+binaries = ("codex", "codex-code-mode-host", "codex-responses-api-proxy")
 
 
 def capture(*args):
@@ -32,7 +33,7 @@ if existing_info:
     assert metadata["std_file_lock_patch_sha256"] == sha(
         repo / "termux/rust-1.95.0-android-file-lock.patch"
     )
-    assert metadata["binary_sha256"] == sha(out / "codex")
+    assert metadata["binaries_sha256"] == {name: sha(out / name) for name in binaries}
     assert metadata["cargo_lock_sha256"] == sha(repo / "codex-rs/Cargo.lock")
     for path in (
         "codex-rs",
@@ -40,6 +41,7 @@ if existing_info:
         "termux/build.sh",
         "termux/linker.sh",
         "termux/prepare-toolchain.py",
+        "termux/prepare-v8.py",
     ):
         built_tree = capture("git", "rev-parse", metadata["fork_commit"] + ":" + path)
         assert built_tree == capture("git", "rev-parse", "HEAD:" + path), path
@@ -69,13 +71,17 @@ else:
         "ninja": capture("ninja", "--version"),
         "cargo_lock_sha256": sha(repo / "codex-rs/Cargo.lock"),
         "binary_sha256": sha(out / "codex"),
+        "binaries_sha256": {name: sha(out / name) for name in binaries},
+        "v8": {"version": "150.4.0", "from_source": True, "sandbox": True,
+               "prepare_sha256": sha(repo / "termux/prepare-v8.py"),
+               "gn_args": os.environ["EXTRA_GN_ARGS"]},
     }
 
 (out / "build-info.json").write_text(json.dumps(metadata, indent=2) + "\n")
 shutil.copyfile(repo / "termux/install.sh", out / "install.sh")
 for name in ("LICENSE", "NOTICE"):
     shutil.copyfile(repo / name, out / name)
-archive = out / "codex-0.155.1-termux.1-aarch64.tar.gz"
+archive = out / "codex-0.155.1-termux.2-aarch64.tar.gz"
 epoch = int(os.environ["SOURCE_DATE_EPOCH"])
 with (
     archive.open("wb") as stream,
@@ -83,7 +89,7 @@ with (
 ):
     with tarfile.open(fileobj=gz, mode="w") as tar:
         for name in (
-            "codex",
+            *binaries,
             "install.sh",
             "build-info.json",
             "elf.txt",
@@ -97,12 +103,12 @@ with (
             entry.mtime = epoch
             entry.mode = (
                 0o755
-                if name in ("codex", "install.sh", "termux-file-lock-probe")
+                if name in (*binaries, "install.sh", "termux-file-lock-probe")
                 else 0o644
             )
             tar.addfile(entry, io.BytesIO(data))
 (out / "SHA256SUMS").write_text(
     "".join(
-        f"{sha(p)}  {p.name}\n" for p in [out / "codex", archive, out / "install.sh"]
+        f"{sha(p)}  {p.name}\n" for p in [*(out / name for name in binaries), archive, out / "install.sh"]
     )
 )

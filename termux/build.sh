@@ -7,9 +7,8 @@ grep -q '^Pkg.Revision = 29.0.14206865$' "$ANDROID_NDK_HOME/source.properties" |
   echo 'Expected Android NDK r29 / 29.0.14206865' >&2; exit 1;
 }
 case "$(uname -s)" in
-  Darwin) host=darwin-x86_64 ;;
   Linux) host=linux-x86_64 ;;
-  *) echo 'Use a Linux x86_64 or macOS build host' >&2; exit 1 ;;
+  *) echo 'The complete V8/Android bundle requires a Linux x86_64 build host (use GitHub Actions).' >&2; exit 1 ;;
 esac
 ndk_bin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/$host/bin"
 export PATH="$ndk_bin:$PATH"
@@ -41,16 +40,26 @@ export RUSTDOC="$repo/termux/.toolchain/bin/rustdoc-termux"
 export RUSTC_BOOTSTRAP=1
 export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$repo/termux/target}"
 cd "$repo/codex-rs"
+export V8_FROM_SOURCE=1
+export LIBCLANG_PATH="${LIBCLANG_PATH:-/usr/lib/llvm-19/lib}"
+export EXTRA_GN_ARGS='default_min_sdk_version=28 android_ndk_api_level=28 symbol_level=0'
+cargo +1.95.0 fetch --locked --target aarch64-linux-android
+python3 "$repo/termux/prepare-v8.py"
 # Catch std/NDK linkage issues before the large CLI build.
 cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android \
   --manifest-path "$repo/termux/file-lock-probe/Cargo.toml"
-cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android -p codex-cli --bin codex "$@"
-binary="${CARGO_TARGET_DIR:-target}/aarch64-linux-android/release/codex"
+cargo +1.95.0 build --locked -Z build-std --release --target aarch64-linux-android \
+  -p codex-code-mode-host --bin codex-code-mode-host \
+  -p codex-responses-api-proxy --bin codex-responses-api-proxy \
+  -p codex-cli --bin codex "$@"
 out="$repo/termux/dist"
 mkdir -p "$out"
-cp "$binary" "$out/codex"
-"$ndk_bin/llvm-strip" "$out/codex"
-"$ndk_bin/llvm-readelf" -h -l -d "$out/codex" > "$out/elf.txt"
+: > "$out/elf.txt"
+for name in codex codex-code-mode-host codex-responses-api-proxy; do
+  cp "$CARGO_TARGET_DIR/aarch64-linux-android/release/$name" "$out/$name"
+  "$ndk_bin/llvm-strip" "$out/$name"
+  "$ndk_bin/llvm-readelf" -h -l -d "$out/$name" >> "$out/elf.txt"
+done
 cp "$CARGO_TARGET_DIR/aarch64-linux-android/release/termux-file-lock-probe" "$out/"
 "$ndk_bin/llvm-strip" "$out/termux-file-lock-probe"
 python3 "$repo/termux/package.py" "$repo" "$out"
