@@ -28,5 +28,8 @@ serde_json = { workspace = true }
 tiny_http = { workspace = true }
 zeroize = { workspace = true }
 
+[target.'cfg(target_os = "android")'.dependencies]
+openssl-sys = { workspace = true, features = ["vendored"] }
+
 [dev-dependencies]
 pretty_assertions = { workspace = true }
