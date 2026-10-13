@@ -42,6 +42,7 @@ if existing_info:
         "termux/linker.sh",
         "termux/prepare-toolchain.py",
         "termux/prepare-v8.py",
+        "termux/patch-v8-bindgen.py",
     ):
         built_tree = capture("git", "rev-parse", metadata["fork_commit"] + ":" + path)
         assert built_tree == capture("git", "rev-parse", "HEAD:" + path), path
@@ -78,6 +79,9 @@ else:
             "from_source": True,
             "sandbox": True,
             "prepare_sha256": sha(repo / "termux/prepare-v8.py"),
+            "bindgen_environment_patch_sha256": sha(
+                repo / "termux/patch-v8-bindgen.py"
+            ),
             "gn_args": os.environ["EXTRA_GN_ARGS"],
         },
     }

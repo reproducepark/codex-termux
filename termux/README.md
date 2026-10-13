@@ -51,7 +51,9 @@ this setting grants access to the Termux app's accessible files, not Android roo
 ## Rebuild on Linux x86_64 or GitHub Actions
 
 Install Git, Rustup, CMake, Ninja, Perl, Make, patch, Python 3.12+.
-Bindgen uses Clang/libclang 21 and Android headers from the pinned NDK.
+Cargo bindgen uses Clang/libclang 21 and Android headers from the pinned NDK.
+V8 GN bindgen actions use their own per-target settings; a hash-checked driver
+patch prevents outer Cargo Android flags from leaking into Linux host actions.
 The complete bundle builds V8 from source and requires Linux x86_64. Use the
 GitHub Actions workflow to avoid compiling on a laptop. Obtain the exact NDK
 revision above via the Android SDK manager or Google's NDK archive. Then:

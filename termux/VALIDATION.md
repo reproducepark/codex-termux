@@ -1,6 +1,6 @@
 # Validation history
 
-## 0.162.1-termux.1 — build preparation
+## 0.162.1-termux.1 — initial CI failure; corrected build pending
 
 Date: 2026-10-12 (Asia/Seoul).
 
@@ -10,6 +10,17 @@ CLI, Code Mode host, responses proxy, Android std file-lock patch, outlined
 atomic linkage and 16 KiB ELF alignment checks. Rust 1.95.0, NDK r29/API 28
 and V8 150.4.0 are pinned. No Android runtime success is claimed yet for this
 revision. Earlier device checks below are historical.
+
+The initial [CI run](https://github.com/reproducepark/codex-termux/actions/runs/38239425906)
+failed in V8's GN host bindgen action, before an installable bundle was produced.
+Cargo's Android `TARGET` and `BINDGEN_EXTRA_CLANG_ARGS*` leaked into an x86_64
+GN action, causing `unsupported option '-msse3' for target 'aarch64-linux-android28'`.
+The pinned GN driver is now patched to isolate its child environment and retain
+GN's explicit target/sysroot/libclang settings. The outer Cargo Android binding
+configuration is preserved. A negative-control subprocess test reproduces the
+leak in the original driver and verifies both host and Android action isolation
+plus idempotent application of the hash-checked patch. This is a build-tool fix;
+it does not establish Android runtime success.
 
 ## 0.155.1-termux.2 — CI and physical-device checks passed
 

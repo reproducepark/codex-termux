@@ -12,6 +12,24 @@ roots = list((cargo_home / "registry/src").glob("*/v8-150.4.0"))
 assert len(roots) == 1, "Run cargo fetch --locked before preparing V8"
 root = roots[0]
 ndk = Path(os.environ["ANDROID_NDK_HOME"]).resolve()
+# GN also builds Linux host tools. Keep the outer Cargo Android-only bindgen
+# flags for V8's Rust API bindings, while GN controls each of its own actions.
+subprocess.run(
+    [
+        "python3",
+        str(Path(__file__).with_name("test-v8-bindgen.py")),
+        str(root / "build/rust/gni_impl/run_bindgen.py"),
+    ],
+    check=True,
+)
+subprocess.run(
+    [
+        "python3",
+        str(Path(__file__).with_name("patch-v8-bindgen.py")),
+        str(root / "build/rust/gni_impl/run_bindgen.py"),
+    ],
+    check=True,
+)
 # Chromium's Android compiler config still references this NDK rebuild marker,
 # but the pinned config.gni no longer defines it. Restore the actual pinned NDK
 # version; this does not change V8 runtime features or sandboxing.
