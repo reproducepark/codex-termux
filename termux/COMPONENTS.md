@@ -34,9 +34,9 @@ for that check. The existing direct-tool mode remains a separate test.
 
 ## Verification boundary
 
-The earlier 0.155.1-termux.2 passed physical-device Code Mode and authenticated
-model checks. Those results do not validate the new 0.162.1 binaries. This revision
-requires fresh device testing after CI compilation and package checks.
+The 0.162.1 bundle passed fresh physical-device checks on 2026-10-15, including
+Code Mode, authenticated model execution and responses-proxy loopback routing.
+See [VALIDATION.md](VALIDATION.md) for exact scope and artifact provenance.
 The upstream Rust toolchain (1.95.0), V8 crate (150.4.0) and ICU data (0.77.0)
 remain unchanged. The helper resolution still supports a sibling executable.
 Native voice/WebRTC is not certified for Android by this package.

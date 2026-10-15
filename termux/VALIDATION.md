@@ -1,6 +1,6 @@
 # Validation history
 
-## 0.162.1-termux.1 — initial CI failure; corrected build pending
+## 0.162.1-termux.1 — CI and physical-device checks passed
 
 Date: 2026-10-12 (Asia/Seoul).
 
@@ -8,8 +8,8 @@ Upstream latest stable: `rust-v0.162.1`, published 2026-10-09 UTC,
 commit `092d3acd6bec3e3a14bdc7e7a2810ab628ab759d`. The port retains the
 CLI, Code Mode host, responses proxy, Android std file-lock patch, outlined
 atomic linkage and 16 KiB ELF alignment checks. Rust 1.95.0, NDK r29/API 28
-and V8 150.4.0 are pinned. No Android runtime success is claimed yet for this
-revision. Earlier device checks below are historical.
+and V8 150.4.0 are pinned. The corrected build and its binaries were verified
+on a physical Android device on 2026-10-15.
 
 The initial [CI run](https://github.com/reproducepark/codex-termux/actions/runs/38239425906)
 failed in V8's GN host bindgen action, before an installable bundle was produced.
@@ -19,8 +19,48 @@ The pinned GN driver is now patched to isolate its child environment and retain
 GN's explicit target/sysroot/libclang settings. The outer Cargo Android binding
 configuration is preserved. A negative-control subprocess test reproduces the
 leak in the original driver and verifies both host and Android action isolation
-plus idempotent application of the hash-checked patch. This is a build-tool fix;
-it does not establish Android runtime success.
+plus idempotent application of the hash-checked patch.
+
+### Corrected CI and device verification
+
+- [Successful CI](https://github.com/reproducepark/codex-termux/actions/runs/38400411943):
+  compilation commit `846f358018be628f2d38077ff88cfed32293d6ff`.
+- Downloaded Actions artifact SHA-256:
+  `d8b643c210371dbf7f0415808500ebfd70170396098fda1c3dbc63be0ba60fbd`;
+  matched GitHub's digest and passed ZIP CRC validation.
+- Install archive SHA-256:
+  `723b671e65aadb26da4ddae2be0292560b6fcd71e396f77ef8ce38d6ac629199`;
+  checked both locally and on the device. Archive contents, build provenance,
+  and installed binary hashes match the original CI output.
+- Samsung SM-S948N / Android 17 / aarch64, 4096-byte kernel pages;
+  Termux F-Droid 0.118.3, native Android/Bionic execution.
+- Upgraded the active CLI from 0.155.1 to 0.162.1 with the bundled installer.
+  CLI and both companion startup checks, real file locks and NDK atomics: pass.
+- App-server, real shell/file I/O, ripgrep, pipes, Korean UTF-8, env shebangs,
+  PTY input/output and resize to 32 x 100: pass.
+- Direct tools and Code Mode HTTP/SSE round trips: pass. The Android V8 host
+  returned `JS_ENGINE_OK:42` and nested shell/file result `AGENT_FILE_OK`.
+  The harness rejects direct-tool fallback and missing-host warnings.
+- Responses proxy: pass. Its actual Android process forwarded a request and a
+  synthetic test authorization header to a local server and streamed the response
+  back. No account credential was used for this proxy check.
+- Existing ChatGPT login, authenticated `gpt-5.6-sol` turn: pass. The actual
+  session's Code Mode output contains `LIVE_JS_OK:42` and `LIVE_SHELL_OK`, with
+  final response `LIVE_CODE_MODE_OK`. The missing-host error did not recur.
+
+The phone TUI starts as 0.162.1 and answered `TERMUX_TUI_OK` using the configured
+GPT-6-Astra medium model. Its startup warning states that command-line
+configuration overrides select embedded mode instead of the shared background
+server. The launcher supplies a Termux shell environment override, so this is
+expected; it is not a missing Code Mode host.
+
+Account-free checks used the release's smoke scripts from the host, with temporary
+on-device Codex homes and work directories. The authenticated check used the
+existing login and a temporary work directory. Login/configuration files were
+not replaced. Temporary test folders, SSH access keys/daemon and port forwards
+were removed after testing. This certifies the tested paths on this device; optional voice/MCP
+integrations, Android OS sandbox support, 16 KiB-kernel execution, exhaustive JIT
+behavior and independent bit-for-bit source rebuilds remain unverified.
 
 ## 0.155.1-termux.2 — CI and physical-device checks passed
 

@@ -39,6 +39,8 @@ The launcher supplies Termux certificate, shell, and temporary-directory default
 It also sets the known Termux `libtermux-exec.so` path for shell tool subprocesses
 using a command-line environment policy override: Codex's startup hardening clears
 `LD_PRELOAD`, which otherwise breaks common `#!/usr/bin/env` scripts on Android.
+In 0.162.1 this `-c` override selects embedded mode, with a startup notice that
+the shared background server is not used. Code Mode remains available.
 No arbitrary inherited preload value is restored. It does not write your Codex
 configuration or change sandbox/approval policies.
 
@@ -161,8 +163,8 @@ model quality. See `VALIDATION.md` for release evidence and remaining limitation
 
 See [COMPONENTS.md](COMPONENTS.md) for runtime coverage and exclusions.
 This revision ports stable 0.162.1, retaining the three-executable bundle and
-Android file-lock/atomic fixes. The earlier 0.155.1-termux.2 passed physical-device
-checks, but those results do not establish runtime support for this new version.
+Android file-lock/atomic fixes. This revision passed physical-device checks on 2026-10-15: shell/PTY, Code Mode
+JS and nested tools, responses-proxy routing, and an authenticated model turn.
 See [VALIDATION.md](VALIDATION.md) for revision-specific evidence.
 
 After installing, run the included account-free checks from the extracted bundle:
@@ -175,5 +177,5 @@ python3 verify-device.py
 This uses temporary Codex home/project directories, a local mock Responses API,
 and explicit unsandboxed test execution. It does not use your login or change
 normal configuration. It verifies app-server, shell/PTY, direct tools and Code Mode
-JavaScript with nested shell calls. Authenticated model behavior and optional
-integrations require separate device checks for this revision.
+JavaScript with nested shell calls. Authenticated model behavior was separately verified on the validation device;
+optional integrations still require separate checks.
