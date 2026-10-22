@@ -1,6 +1,6 @@
 # Validation history
 
-## 0.163.0-termux.1 — build preparation
+## 0.163.0-termux.1 — CI and artifact checks passed
 
 Date: 2026-10-22 (Asia/Seoul).
 
@@ -8,8 +8,27 @@ Latest stable verified via GitHub Releases API: `rust-v0.163.0`, published
 2026-10-15 UTC, commit `129b8ec7ee6f4511557a4856279f529025c25af4`.
 Rust 1.95.0, V8 150.4.0, NDK r29/API 28 and all three executables are retained.
 The Android file-lock, atomic linkage, 16 KiB alignment and GN bindgen environment
-fixes are retained. CI and artifact verification are pending. No physical-device
-validation is claimed for this revision.
+fixes are retained. CI completed successfully on 2026-10-22; the downloaded
+artifact was independently verified on 2026-10-23 (Asia/Seoul).
+
+- [Successful Actions run](https://github.com/reproducepark/codex-termux/actions/runs/39742694651),
+  job `119703563345`, compilation commit `ba05bc4eee6786605a08b2ba8675d1da831ca949`.
+- Installer failure/upgrade tests, script syntax, GN host/Android bindgen regression,
+  locked release compilation, Rust formatting, Android ELF and complete bundle checks: pass.
+- CLI, Code Mode host, responses proxy and file-lock probe: ARM64 Android PIE,
+  `/system/bin/linker64`, system-only shared dependencies, 16 KiB LOAD alignment.
+- Actions artifact `12417842475`, `codex-termux-aarch64`, 271562710 bytes:
+  SHA-256 `1c900675e0ede655f12f5f81a5af757e4eb63c2ab2cfc1a58ab94614c79b02fc`.
+  Downloaded ZIP matches GitHub's digest and passes CRC validation.
+- Install archive `codex-0.163.0-termux.1-aarch64.tar.gz`:
+  SHA-256 `e4e23e2269c84671960686e7c5944e953d7f515626bf2425612f51219410785d`.
+  Archive contents, executable modes, all checksums and build provenance independently verified.
+- Original stable external dependency revisions/checksums are preserved; workspace
+  versions and the three Android vendored OpenSSL edges are the lockfile changes.
+- The build log contains unused imports/mutability/dead-code warnings; no failing build steps.
+
+No physical-device installation or runtime validation is claimed for 0.163.0.
+The earlier device evidence below applies only to its named versions.
 
 ## 0.162.1-termux.1 — CI and physical-device checks passed
 
